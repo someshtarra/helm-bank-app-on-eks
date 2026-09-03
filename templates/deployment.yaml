@@ -1,35 +1,38 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "bank-app.fullname" . }}
+  name: bank-app
   labels:
-    {{- include "bank-app.labels" . | nindent 4 }}
+    app: bank-app
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   strategy:
-    {{- toYaml .Values.strategy | nindent 4 }}
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
-      {{- include "bank-app.selectorLabels" . | nindent 6 }}
+      app: bank-app
   template:
     metadata:
       labels:
-        {{- include "bank-app.labels" . | nindent 8 }}
+        app: bank-app
     spec:
-      serviceAccountName: {{ include "bank-app.serviceAccountName" . }}
+      serviceAccountName: bank-app-sa
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
+        - name: bank-container
           {{- with .Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
@@ -69,11 +72,7 @@ spec:
       volumes:
         - name: storage
           persistentVolumeClaim:
-            claimName: {{ include "bank-app.fullname" . }}-pvc
-      {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
+            claimName: bank-app-pvc
       {{- end }}
       {{- with .Values.affinity }}
       affinity:

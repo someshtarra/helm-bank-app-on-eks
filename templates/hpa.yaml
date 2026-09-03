@@ -2,14 +2,14 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "bank-app.fullname" . }}
+  name: bank-app-hpa
   labels:
-    {{- include "bank-app.labels" . | nindent 4 }}
+    app: bank-app
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "bank-app.fullname" . }}
+    name: bank-app
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:

@@ -1,16 +1,16 @@
-{{- if and .Values.rbac.create .Values.serviceAccount.create -}}
+{{- if and .Values.rbac.create .Values.serviceAccount.create }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ include "bank-app.fullname" . }}-rolebinding
+  name: bank-app-rolebinding
   labels:
-    {{- include "bank-app.labels" . | nindent 4 }}
+    app: bank-app
 subjects:
   - kind: ServiceAccount
-    name: {{ include "bank-app.serviceAccountName" . }}
+    name: bank-app-sa
     namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ include "bank-app.fullname" . }}-role
+  name: bank-app-role
 {{- end }}

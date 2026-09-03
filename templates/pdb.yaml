@@ -1,13 +1,13 @@
-{{- if .Values.podDisruptionBudget.enabled -}}
+{{- if .Values.podDisruptionBudget.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "bank-app.fullname" . }}-pdb
+  name: bank-app-pdb
   labels:
-    {{- include "bank-app.labels" . | nindent 4 }}
+    app: bank-app
 spec:
   minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
   selector:
     matchLabels:
-      {{- include "bank-app.selectorLabels" . | nindent 6 }}
+      app: bank-app
 {{- end }}
