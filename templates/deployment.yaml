@@ -35,35 +35,29 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
-          {{- if .Values.probes.startupProbe.enabled }}
           startupProbe:
             httpGet:
-              path: {{ .Values.probes.startupProbe.httpGet.path }}
-              port: {{ .Values.probes.startupProbe.httpGet.port }}
-            initialDelaySeconds: {{ .Values.probes.startupProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.probes.startupProbe.periodSeconds }}
-            failureThreshold: {{ .Values.probes.startupProbe.failureThreshold }}
-            timeoutSeconds: {{ .Values.probes.startupProbe.timeoutSeconds }}
-          {{- end }}
-          {{- if .Values.probes.readinessProbe.enabled }}
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 20
+            timeoutSeconds: 2
           readinessProbe:
             httpGet:
-              path: {{ .Values.probes.readinessProbe.httpGet.path }}
-              port: {{ .Values.probes.readinessProbe.httpGet.port }}
-            initialDelaySeconds: {{ .Values.probes.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.probes.readinessProbe.periodSeconds }}
-            failureThreshold: {{ .Values.probes.readinessProbe.failureThreshold }}
-            timeoutSeconds: {{ .Values.probes.readinessProbe.timeoutSeconds }}
-          {{- end }}
-          {{- if .Values.probes.livenessProbe.enabled }}
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+            timeoutSeconds: 2
           livenessProbe:
             tcpSocket:
-              port: {{ .Values.probes.livenessProbe.tcpSocket.port }}
-            initialDelaySeconds: {{ .Values.probes.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.probes.livenessProbe.periodSeconds }}
-            failureThreshold: {{ .Values.probes.livenessProbe.failureThreshold }}
-            timeoutSeconds: {{ .Values.probes.livenessProbe.timeoutSeconds }}
-          {{- end }}
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 2
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.storage.enabled }}
