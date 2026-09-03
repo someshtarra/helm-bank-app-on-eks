@@ -1,0 +1,19 @@
+# .helmignore
+# Files and directories ignored by Helm packaging and linting
+
+.git/
+.gitignore
+.helmignore
+.venv/
+venv/
+__pycache__/
+*.py
+*.png
+*.svg
+*.pptx
+*.md
+docs/
+diagrams/
+presentation/
+helm-1/
+LICENSE

@@ -1,0 +1,220 @@
+# Default values for bank-app.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# ------------------------------------------------------------------------------
+# Application Replica Configuration
+# ------------------------------------------------------------------------------
+# Initial replica count when HPA is disabled.
+# When HPA is enabled, minReplicas and maxReplicas govern pod count dynamically.
+replicaCount: 2
+
+# ------------------------------------------------------------------------------
+# Container Image Settings
+# ------------------------------------------------------------------------------
+image:
+  repository: someshtarra/httpd
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "fox-3D"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ------------------------------------------------------------------------------
+# ServiceAccount Configuration (Least Privilege)
+# ------------------------------------------------------------------------------
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account (e.g. AWS IAM Roles for Service Accounts - IRSA)
+  # eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/bank-app-irsa-role
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+  # Security Hardening: Frontend web application does not need direct access
+  # to the Kubernetes API server. Disabling token automount stops token leakage.
+  automountServiceAccountToken: false
+
+# ------------------------------------------------------------------------------
+# RBAC Configuration (Principle of Least Privilege)
+# ------------------------------------------------------------------------------
+rbac:
+  # Specifies whether RBAC Role and RoleBinding should be created
+  create: true
+  # Defined permissions. Avoid cluster-wide or dangerous verbs (delete/create pods).
+  # Below grants read-only access to ConfigMaps for runtime configuration.
+  rules:
+    - apiGroups: [""]
+      resources: ["configmaps"]
+      verbs: ["get", "list", "watch"]
+
+# ------------------------------------------------------------------------------
+# Pod Security Context (Pod Level)
+# ------------------------------------------------------------------------------
+podSecurityContext:
+  fsGroup: 10001
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+# ------------------------------------------------------------------------------
+# Container Security Context (Container Level)
+# ------------------------------------------------------------------------------
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false  # Set to true if Apache logs & pid are mounted on tmpfs
+  capabilities:
+    drop:
+      - ALL
+
+# ------------------------------------------------------------------------------
+# Kubernetes Service & AWS Load Balancer Configuration
+# ------------------------------------------------------------------------------
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 80
+  # AWS Network Load Balancer (NLB) annotations for modern AWS EKS
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+
+# ------------------------------------------------------------------------------
+# Compute Resource Management (CPU & Memory Requests/Limits)
+# Critical: CPU requests are MANDATORY for HPA target percentage calculation!
+# ------------------------------------------------------------------------------
+resources:
+  requests:
+    cpu: 200m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# ------------------------------------------------------------------------------
+# Horizontal Pod Autoscaler (HPA v2)
+# ------------------------------------------------------------------------------
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
+  targetMemoryUtilizationPercentage: 80
+  # Stabilization windows prevent rapid thrashing / flap cycles during transient spikes
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+
+# ------------------------------------------------------------------------------
+# Zero-Downtime Deployment Strategy
+# ------------------------------------------------------------------------------
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+# ------------------------------------------------------------------------------
+# High Availability: PodDisruptionBudget (PDB)
+# ------------------------------------------------------------------------------
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ------------------------------------------------------------------------------
+# Health Probes (Startup, Readiness, Liveness Triad)
+# ------------------------------------------------------------------------------
+probes:
+  startupProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 20
+    timeoutSeconds: 2
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+    timeoutSeconds: 2
+  livenessProbe:
+    enabled: true
+    tcpSocket:
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+    timeoutSeconds: 2
+
+# ------------------------------------------------------------------------------
+# Persistent Storage Architecture
+# Architecture Note on AWS EBS:
+# EBS volumes support only ReadWriteOnce (RWO) and are bound to a single EC2 node.
+# If HPA scales replicas across multiple nodes, pods on other nodes will fail with
+# "Multi-Attach error". For shared multi-pod storage across multiple nodes/AZs,
+# AWS EFS (ReadWriteMany - RWX) or S3 object storage must be used.
+# ------------------------------------------------------------------------------
+storage:
+  enabled: true
+  # Type of storage: 'ebs' (RWO single node) or 'efs' (RWX multi node)
+  type: ebs
+  storageClassName: "ebs-gp3-sc"
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+  mountPath: /var/www/html/
+  # StorageClass creation toggle and parameters
+  storageClass:
+    create: true
+    provisioner: ebs.csi.aws.com
+    volumeBindingMode: WaitForFirstConsumer
+    reclaimPolicy: Retain
+    parameters:
+      type: gp3
+      fsType: ext4
+
+# ------------------------------------------------------------------------------
+# Scheduling: Node Affinity & Tolerations
+# ------------------------------------------------------------------------------
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 80
+        preference:
+          matchExpressions:
+            - key: environment
+              operator: In
+              values:
+                - production
+
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: frontend
+    effect: NoSchedule
+
+nodeSelector: {}
+
+commonLabels: {}

@@ -1,0 +1,20 @@
+apiVersion: v2
+name: bank-app
+description: Production-Ready Bank Application on AWS EKS with Horizontal Autoscaling, Least-Privilege RBAC, and Resilient Storage Architecture
+type: application
+version: 1.0.0
+appVersion: "2.4.58"
+keywords:
+  - kubernetes
+  - aws-eks
+  - helm3
+  - hpa
+  - rbac
+  - ebs-csi
+  - devops-portfolio
+maintainers:
+  - name: Someswara Rao Tarra
+    email: someshtarra@users.noreply.github.com
+home: https://github.com/someshtarra/helm-bank-app-on-eks
+sources:
+  - https://github.com/someshtarra/helm-bank-app-on-eks

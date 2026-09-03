@@ -1,0 +1,15 @@
+{{- if .Values.storage.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bank-app.fullname" . }}-pvc
+  labels:
+    {{- include "bank-app.labels" . | nindent 4 }}
+spec:
+  storageClassName: {{ .Values.storage.storageClassName }}
+  accessModes:
+    {{- toYaml .Values.storage.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+{{- end }}
